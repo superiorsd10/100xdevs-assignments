@@ -39,11 +39,78 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require("express");
+const bodyParser = require("body-parser");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const { log } = require("console");
+
+const app = express();
+
+app.use(bodyParser.json());
+
+app.get("/todos", (req, res) => {
+  fs.readFile("./todos.json", "utf-8", (err, data) => {
+    if (err) {
+      res.status(404).send("File not found");
+      return;
+    }
+
+    const jsonData = JSON.parse(data);
+
+    res.status(200).send(jsonData);
+  });
+});
+
+app.get("/todos/:id", (req, res) => {
+  const todoId = req.params.id;
+  fs.readFile("./todos.json", "utf-8", (err, data) => {
+    if (err) {
+      res.status(404).send("File not found");
+      return;
+    }
+
+    const todos = JSON.parse(data);
+
+    const todo = todos.find((todo) => todo.id == todoId);
+
+    if (todo) {
+      res.status(200).send(todo);
+    } else {
+      res.status(200).send("Todo not found");
+    }
+  });
+});
+
+app.post("/todos", (req, res) => {
+  const todo = req.body;
+  const todoId = uuidv4();
+
+  todo.id = todoId;
+
+  fs.readFile("./todos.json", "utf-8", (err, data) => {
+    if (err) {
+      res.status(404).send("File not found");
+      return;
+    }
+
+    const todos = JSON.parse(data);
+
+    todos.push(todo);
+
+    fs.writeFile("./todos.json", JSON.stringify(todos), "utf-8", (err) => {
+      if (err) {
+        res.status(404).send("File not found");
+        return;
+      }
+
+      res.status(201).json({
+        id: todoId,
+      });
+    });
+  });
+});
+
+app.listen(3002);
+
+module.exports = app;
